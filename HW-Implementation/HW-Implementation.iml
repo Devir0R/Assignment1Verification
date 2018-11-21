@@ -7,5 +7,19 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library" exported="">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/../HW-Definitions" />
+        </CLASSES>
+        <JAVADOC>
+          <root url="file://$MODULE_DIR$/../HW-Definitions/doc" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../HW-Definitions/src" />
+          <root url="file://$MODULE_DIR$/../HW-Definitions/test" />
+        </SOURCES>
+      </library>
+    </orderEntry>
   </component>
 </module>
