@@ -189,7 +189,7 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 			}
 		}
 		if(ap.contains(p)) {
-			actions.remove(p);
+			ap.remove(p);
 		}
 		else {
 			throw new AtomicPropositionNotFoundException("the following atomic preposition is not present in the Transition System: " + p.toString());
@@ -205,8 +205,20 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public void removeState(STATE state) throws FVMException {
-		// TODO Auto-generated method stub
-		
+		LinkedList<Transition<STATE, ACTION>> toRemove = new LinkedList<>();
+		for(Transition<STATE, ACTION> t : transitions) {
+			if(t.getFrom().equals(state) || t.getTo().equals(state)) {
+				toRemove.add(t);
+			}
+		}
+		for(Transition<STATE, ACTION> t : toRemove) {
+			transitions.remove(t);
+		}
+		labelingFunction.remove(states);
+		initStates.remove(state);
+		if(!states.remove(state)) {
+			throw new StateNotFoundException("the following atomic preposition is not present in the Transition System: " + state.toString());
+		}
 	}
 
 	@Override
