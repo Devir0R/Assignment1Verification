@@ -1,5 +1,7 @@
 package il.ac.bgu.cs.fvm.impl;
 
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -8,76 +10,90 @@ import il.ac.bgu.cs.fvm.programgraph.ProgramGraph;
 
 public class PGImple<L,A> implements ProgramGraph<L, A> {
 
+	String graphName;
+	HashSet<L> locs = new HashSet<>();
+	HashSet<A> actions = new HashSet<>();
+	HashSet<L> initLocs = new HashSet<>();
+	HashSet<PGTransition<L, A>> transitions = new HashSet<PGTransition<L, A>>();
+	HashSet<HashSet<String>> valuesInits = new HashSet<>();
+	
 	@Override
 	public void addInitalization(List<String> init) {
-		// TODO Auto-generated method stub
-		
+		valuesInits.add(new HashSet<String>(init));
 	}
 
 	@Override
 	public void setInitial(L location, boolean isInitial) {
-		// TODO Auto-generated method stub
-		
+		if(isInitial) {
+			initLocs.add(location);
+		}
+		else {
+			initLocs.remove(location);
+		}
 	}
 
 	@Override
 	public void addLocation(L l) {
-		// TODO Auto-generated method stub
-		
+		locs.add(l);
 	}
 
 	@Override
 	public void addTransition(PGTransition<L, A> t) {
-		// TODO Auto-generated method stub
-		
+		transitions.add(t);
 	}
 
 	@Override
 	public Set<List<String>> getInitalizations() {
-		// TODO Auto-generated method stub
-		return null;
+		HashSet<List<String>> inits = new HashSet<>();
+		for(HashSet<String> oneInit : valuesInits) {
+			inits.add(new LinkedList<>(oneInit));
+		}
+		return inits;
 	}
 
 	@Override
 	public Set<L> getInitialLocations() {
-		// TODO Auto-generated method stub
-		return null;
+		return initLocs;
 	}
 
 	@Override
 	public Set<L> getLocations() {
-		// TODO Auto-generated method stub
-		return null;
+		return locs;
 	}
 
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
+		return graphName;
 	}
 
 	@Override
 	public Set<PGTransition<L, A>> getTransitions() {
-		// TODO Auto-generated method stub
-		return null;
+		return transitions;
 	}
 
 	@Override
 	public void removeLocation(L l) {
-		// TODO Auto-generated method stub
-		
+		LinkedList<PGTransition<L, A>> toRemove = new LinkedList<>();
+		for(PGTransition<L,A> pgt : transitions) {
+			if(pgt.getFrom().equals(l)||pgt.getTo().equals(l)) {
+				toRemove.add(pgt);
+			}
+		}
+		for(PGTransition<L,A> pgt : toRemove) {
+			transitions.remove(pgt);
+		}
+		initLocs.remove(l);
+		locs.remove(l);
 	}
 
 	@Override
 	public void removeTransition(PGTransition<L, A> t) {
-		// TODO Auto-generated method stub
-		
+		transitions.remove(t);
 	}
 
 	@Override
 	public void setName(String name) {
-		// TODO Auto-generated method stub
-		
+		graphName = name;
 	}
 
 }
