@@ -1,4 +1,4 @@
-package il.ac.bgu.cs.fvm.impl;
+package il.ac.bgu.cs.fvm.impl.exc;
 
 import il.ac.bgu.cs.fvm.exceptions.FVMException;
 

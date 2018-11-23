@@ -2,12 +2,17 @@ package il.ac.bgu.cs.fvm.impl;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
+import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedActionException;
+import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedAtomicPropositionException;
+import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedStateException;
 import il.ac.bgu.cs.fvm.exceptions.FVMException;
+import il.ac.bgu.cs.fvm.exceptions.InvalidTransitionException;
 import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
+import il.ac.bgu.cs.fvm.exceptions.TransitionSystemPart;
+import il.ac.bgu.cs.fvm.impl.exc.AtomicPropositionNotFoundException;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 
@@ -101,7 +106,17 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public void setInitial(STATE aState, boolean isInitial) throws StateNotFoundException {
-		initStates.add(aState);
+		if(states.contains(aState)) {
+			if(isInitial) {
+				initStates.add(aState);
+			}
+			else {
+				initStates.remove(aState);
+			}
+		}
+		else {
+			throw new StateNotFoundException("the following state cannot be initial because it is not present in the Transition System: " + aState);
+		}
 	}
 
 	@Override
@@ -111,7 +126,12 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public void addTransition(Transition<STATE, ACTION> t) throws FVMException {
-		transitions.add(t);
+		if(states.contains(t.getFrom())&&states.contains(t.getTo())&&actions.contains(t.getAction())) {
+					transitions.add(t);
+		}
+		else {
+			throw new InvalidTransitionException(t);
+		}
 	}
 
 	@Override
@@ -131,6 +151,9 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public void addToLabel(STATE s, ATOMIC_PROPOSITION l) throws FVMException {
+		if(!ap.contains(l)) {
+			throw new AtomicPropositionNotFoundException("the action " + s + "could not be labeled by " + l +" because it is not an atomic proposition in the transition system");
+		}
 		if(labelingFunction.get(s)==null) {
 			labelingFunction.put(s, new HashSet<>());
 		}
@@ -139,6 +162,12 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public Set<ATOMIC_PROPOSITION> getLabel(STATE s) {
+		if(!states.contains(s)) {
+			throw new StateNotFoundException("could not get state's labeling, because the following state is not present in the Transition System states: " + s);
+		}
+		if(labelingFunction.get(s)==null) {
+			labelingFunction.put(s, new HashSet<>());
+		}
 		return labelingFunction.get(s);
 	}
 
@@ -164,20 +193,13 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 
 	@Override
 	public void removeAction(ACTION action) throws FVMException {
-		LinkedList<Transition<STATE, ACTION>> toRemove = new LinkedList<>();
 		for(Transition<STATE, ACTION> t : transitions) {
-			if(t.getAction().equals(t)) {
-				toRemove.add(t);
+			if(t.getAction().equals(action)) {
+				throw new DeletionOfAttachedActionException(action,TransitionSystemPart.TRANSITIONS);
 			}
-		}
-		for(Transition<STATE, ACTION> t : toRemove) {
-			transitions.remove(t);
 		}
 		if(actions.contains(action)) {
 			actions.remove(action);
-		}
-		else {
-			throw new ActionNotFoundException("the following action is not present in the Transition System: " + action.toString());
 		}
 	}
 
@@ -185,40 +207,35 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 	public void removeAtomicProposition(ATOMIC_PROPOSITION p) throws FVMException {
 		for(STATE s : states) {
 			if(labelingFunction.get(s).contains(p)) {
-				labelingFunction.get(s).remove(p);
+				throw new DeletionOfAttachedAtomicPropositionException(p,TransitionSystemPart.STATES);
 			}
 		}
 		if(ap.contains(p)) {
 			ap.remove(p);
 		}
-		else {
-			throw new AtomicPropositionNotFoundException("the following atomic preposition is not present in the Transition System: " + p.toString());
-		}
 	}
 
 	@Override
 	public void removeLabel(STATE s, ATOMIC_PROPOSITION l) {
-		if(labelingFunction.get(s).contains(l)) {
-			labelingFunction.get(s).remove(l);
+		Set<ATOMIC_PROPOSITION> state_ap = labelingFunction.get(s);
+		if(state_ap!=null && state_ap.contains(l)) {
+			state_ap.remove(l);
 		}
 	}
 
 	@Override
 	public void removeState(STATE state) throws FVMException {
-		LinkedList<Transition<STATE, ACTION>> toRemove = new LinkedList<>();
 		for(Transition<STATE, ACTION> t : transitions) {
 			if(t.getFrom().equals(state) || t.getTo().equals(state)) {
-				toRemove.add(t);
+				throw new DeletionOfAttachedStateException(state,TransitionSystemPart.TRANSITIONS);
 			}
 		}
-		for(Transition<STATE, ACTION> t : toRemove) {
-			transitions.remove(t);
-		}
-		labelingFunction.remove(states);
-		initStates.remove(state);
-		if(!states.remove(state)) {
-			throw new StateNotFoundException("the following atomic preposition is not present in the Transition System: " + state.toString());
-		}
+		if(labelingFunction.get(state)!=null && labelingFunction.get(state).size()>0)
+			throw new DeletionOfAttachedStateException(state,TransitionSystemPart.LABELING_FUNCTION);
+		if(initStates.contains(state))
+			throw new DeletionOfAttachedStateException(state,TransitionSystemPart.INITIAL_STATES);
+		states.remove(state);
+
 	}
 
 	@Override

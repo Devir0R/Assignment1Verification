@@ -53,7 +53,7 @@ public class TransitionSystemTest {
 		ts.setInitial(S1, true);
 	}
 
-	@Test(expected = DeletionOfAttachedStateException.class, timeout=2000)
+	@Test(expected = DeletionOfAttachedStateException.class, timeout=1000000)
 	public void initialStateCantBeRemoved() throws Exception {
 		ts.addState(S1);
 		ts.setInitial(S1, true);
