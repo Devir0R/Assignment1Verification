@@ -10,10 +10,12 @@ import il.ac.bgu.cs.fvm.programgraph.ActionDef;
 import il.ac.bgu.cs.fvm.programgraph.ConditionDef;
 import il.ac.bgu.cs.fvm.programgraph.ProgramGraph;
 import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
+import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.fvm.util.Pair;
 import il.ac.bgu.cs.fvm.verification.VerificationResult;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,18 +29,32 @@ public class FvmFacadeImpl implements FvmFacade {
 
     @Override
     public <S, A, P> TransitionSystem<S, A, P> createTransitionSystem() {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement createTransitionSystem
+        return new TSImple<>();
     }
 
     @Override
     public <S, A, P> boolean isActionDeterministic(TransitionSystem<S, A, P> ts) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isActionDeterministic
+    	boolean isInitStatesCountLessThanOne =  ts.getInitialStates().size()<=1;
+    	return isInitStatesCountLessThanOne && isEveryPostCountLessThanOne(ts);
     }
 
     @Override
     public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts) {
-        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isAPDeterministic
+        throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isActionDeterministic
     }
+
+	private <S, A, P> boolean isEveryPostCountLessThanOne(TransitionSystem<S, A, P> ts) {
+		HashMap<Pair<S,A>,Integer> stateActionPairs_state = new HashMap<>();
+		for(Transition<S, A> t : ts.getTransitions()) {
+			if(stateActionPairs_state.get(new Pair<S,A>(t.getFrom(),t.getAction()))==null) {
+				stateActionPairs_state.put(new Pair<S,A>(t.getFrom(),t.getAction()), 1);
+			}
+			else {
+				return false;
+			}
+		}
+		return true;
+	}
 
     @Override
     public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
