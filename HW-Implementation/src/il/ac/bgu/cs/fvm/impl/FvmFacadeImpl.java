@@ -45,6 +45,7 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts) {
+		//boolean isInitStatesCountLessThanOne =  ts.getInitialStates().size()<=1;
 		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isActionDeterministic
 	}
 
@@ -88,22 +89,46 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, S s) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement post
+		HashSet<S> post_s = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(t.getFrom().equals(s)) {
+				post_s.add(t.getTo());
+			}
+		}
+		return post_s;
 	}
 
 	@Override
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement post
+		HashSet<S> post_states = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(c.contains(t.getFrom())) {
+				post_states.add(t.getTo());
+			}
+		}
+		return post_states;
 	}
 
 	@Override
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement post
+		HashSet<S> post_s_a = new HashSet<>();
+		for(Transition<S, A> t : ts.getTransitions()) {
+			if(t.getFrom().equals(s)&& t.getAction().equals(a)) {
+				post_s_a.add(t.getTo());
+			}
+		}
+		return post_s_a;
 	}
 
 	@Override
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement post
+		HashSet<S> post_states_a = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(t.getAction().equals(a)&& c.contains(t.getFrom())) {
+				post_states_a.add(t.getTo());
+			}
+		}
+		return post_states_a;
 	}
 
 	@Override
@@ -198,7 +223,7 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <L, A> ProgramGraph<L, A> createProgramGraph() {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement createProgramGraph
+		return new PGImple<>();
 	}
 
 	@Override
@@ -239,6 +264,20 @@ public class FvmFacadeImpl implements FvmFacade {
 
 
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 
 
