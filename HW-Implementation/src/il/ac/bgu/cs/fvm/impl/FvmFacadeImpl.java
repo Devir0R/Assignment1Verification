@@ -45,8 +45,33 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A, P> boolean isAPDeterministic(TransitionSystem<S, A, P> ts) {
-		//boolean isInitStatesCountLessThanOne =  ts.getInitialStates().size()<=1;
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isActionDeterministic
+		boolean isInitStatesCountLessThanOne =  ts.getInitialStates().size()<=1;
+		return isInitStatesCountLessThanOne && isEveryLabelPostCountLessThanOne(ts);
+	}
+
+	private <S, A, P> boolean isEveryLabelPostCountLessThanOne(TransitionSystem<S, A, P> ts) {
+		for(S state : ts.getStates()) {
+			Set<Set<P>> labelings = new HashSet<>();
+			for(S postState : post(ts, state)) {
+				Set<P> stateLabeling = ts.getLabel(postState);
+				if(labelings.contains(stateLabeling)) {
+					return false;
+				}
+				else {
+					labelings.add(stateLabeling);
+				}
+				
+			}
+		}
+		return true;
+	}
+
+	private <P, S, A> HashSet<P> postStatesLabeling(TransitionSystem<S, A, P> ts, S state) {
+		HashSet<P> postLabelingOfState = new HashSet<>();
+		for(S postState : post(ts,state)) {
+			postLabelingOfState.addAll(ts.getLabel(postState));
+		}
+		return postLabelingOfState;
 	}
 
 	private <S, A, P> boolean isEveryPostCountLessThanOne(TransitionSystem<S, A, P> ts) {
