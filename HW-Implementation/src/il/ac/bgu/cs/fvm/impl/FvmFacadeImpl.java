@@ -5,6 +5,7 @@ import il.ac.bgu.cs.fvm.automata.Automaton;
 import il.ac.bgu.cs.fvm.automata.MultiColorAutomaton;
 import il.ac.bgu.cs.fvm.channelsystem.ChannelSystem;
 import il.ac.bgu.cs.fvm.circuits.Circuit;
+import il.ac.bgu.cs.fvm.exceptions.ActionNotFoundException;
 import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.fvm.ltl.LTL;
 import il.ac.bgu.cs.fvm.programgraph.ActionDef;
@@ -82,22 +83,45 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A, P> boolean isExecution(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isExecution
+		return isStateTerminal(ts, e.last()) && ts.getInitialStates().contains(e.head()) && isExecutionFragment(ts, e);
 	}
 
 	@Override
 	public <S, A, P> boolean isExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isExecutionFragment
+		S from,to;
+		A action;
+		AlternatingSequence<S, A> itStates = e;
+		AlternatingSequence<A, S> itActions;
+		while(itStates.size()>1) {
+			from = itStates.head();
+			itActions = itStates.tail();
+			action = itActions.head();
+			itStates = itActions.tail();
+			to = itStates.head();
+			if(!ts.getStates().contains(from)) {
+				throw new StateNotFoundException(from);
+			}
+			if(!ts.getActions().contains(action)) {
+				throw new ActionNotFoundException(action);
+			}
+			if(!ts.getStates().contains(to)) {
+				throw new StateNotFoundException(from);
+			}
+			if(!ts.getTransitions().contains(new Transition<S, A>(from, action, to))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
 	public <S, A, P> boolean isInitialExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isInitialExecutionFragment
+		return ts.getInitialStates().contains(e.head()) && isExecutionFragment(ts, e);
 	}
 
 	@Override
 	public <S, A, P> boolean isMaximalExecutionFragment(TransitionSystem<S, A, P> ts, AlternatingSequence<S, A> e) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isMaximalExecutionFragment
+		return isStateTerminal(ts, e.last()) && isExecutionFragment(ts, e);
 	}
 
 	@Override
