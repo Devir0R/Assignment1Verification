@@ -10,6 +10,7 @@ import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.fvm.ltl.LTL;
 import il.ac.bgu.cs.fvm.programgraph.ActionDef;
 import il.ac.bgu.cs.fvm.programgraph.ConditionDef;
+import il.ac.bgu.cs.fvm.programgraph.PGTransition;
 import il.ac.bgu.cs.fvm.programgraph.ProgramGraph;
 import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
@@ -462,7 +463,75 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <L1, L2, A> ProgramGraph<Pair<L1, L2>, A> interleave(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
+		ProgramGraph<Pair<L1,L2>, A>  inter_pg = createProgramGraph();
+		inter_pg.setName("(" + pg1.getName() + " U " + pg2.getName() + ")");
+		locationProduct(pg1, pg2, inter_pg);
+		initLocationProduct(pg1, pg2, inter_pg);
+		initializationProduct(pg1, pg2, inter_pg);
+		transitionsByL1(pg1, pg2, inter_pg);
+		transitionsByL2(pg1, pg2, inter_pg);
+		return inter_pg;
+	}
+
+	private <L1, L2, A> void transitionsByL2(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2,
+			ProgramGraph<Pair<L1, L2>, A> inter_pg) {
+		for(PGTransition<L2, A> pgt : pg2.getTransitions()) {
+			for(L1 l1 : pg1.getLocations()) {
+				inter_pg.addTransition(
+						new PGTransition<>(
+								new Pair<L1,L2>(l1,pgt.getFrom()),
+								pgt.getCondition(),
+								pgt.getAction(),
+								new Pair<L1,L2>(l1,pgt.getTo())));
+			}
+		}
+	}
+
+	private <L1, L2, A> void transitionsByL1(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2,
+			ProgramGraph<Pair<L1, L2>, A> inter_pg) {
+		for(PGTransition<L1, A> pgt : pg1.getTransitions()) {
+			for(L2 l2 : pg2.getLocations()) {
+				inter_pg.addTransition(
+						new PGTransition<>(
+								new Pair<L1,L2>(pgt.getFrom(), l2),
+								pgt.getCondition(),
+								pgt.getAction(),
+								new Pair<L1,L2>(pgt.getTo(), l2)));
+			}
+		}
+	}
+
+	private <L1, A, L2> void initializationProduct(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2,
+			ProgramGraph<Pair<L1, L2>, A> inter_pg) {
+		for(List<String> i12ns1 : pg1.getInitalizations()) {
+			for(List<String> i12ns2 : pg2.getInitalizations()) {
+				inter_pg.addInitalization(unifyLists(i12ns1,i12ns2));
+			}
+		}
+	}
+
+	private <L1, L2, A> void initLocationProduct(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2,
+			ProgramGraph<Pair<L1, L2>, A> inter_pg) {
+		for(L1 l1 : pg1.getInitialLocations()) {
+			for(L2 l2 : pg2.getInitialLocations()) {
+				inter_pg.setInitial(new Pair<L1, L2>(l1, l2), true);
+			}
+		}
+	}
+
+	private <L1, L2, A> void locationProduct(ProgramGraph<L1, A> pg1, ProgramGraph<L2, A> pg2,
+			ProgramGraph<Pair<L1, L2>, A> inter_pg) {
+		for(L1 l1 : pg1.getLocations()) {
+			for(L2 l2 : pg2.getLocations()) {
+				inter_pg.addLocation(new Pair<L1, L2>(l1, l2));
+			}
+		}
+	}
+
+	private LinkedList<String> unifyLists(List<String> i12ns1,List<String> i12ns2) {
+		LinkedList<String> union = new LinkedList<>(i12ns1);
+		union.addAll(i12ns2);
+		return union;
 	}
 
 	@Override
@@ -489,6 +558,17 @@ public class FvmFacadeImpl implements FvmFacade {
 	public ProgramGraph<String, String> programGraphFromNanoPromela(String filename) throws Exception {
 		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromela
 	}
+
+	@Override
+	public ProgramGraph<String, String> programGraphFromNanoPromelaString(String nanopromela) throws Exception {
+		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromelaString
+	}
+
+	@Override
+	public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception {
+		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromela
+	}
+	
 	/***until here first Assignment***************/
 
 
@@ -514,16 +594,6 @@ public class FvmFacadeImpl implements FvmFacade {
 
 
 
-
-	@Override
-	public ProgramGraph<String, String> programGraphFromNanoPromelaString(String nanopromela) throws Exception {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromelaString
-	}
-
-	@Override
-	public ProgramGraph<String, String> programGraphFromNanoPromela(InputStream inputStream) throws Exception {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement programGraphFromNanoPromela
-	}
 
 	@Override
 	public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts, Automaton<Saut, P> aut) {

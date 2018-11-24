@@ -12,14 +12,13 @@ public class PGImple<L,A> implements ProgramGraph<L, A> {
 
 	String graphName;
 	HashSet<L> locs = new HashSet<>();
-	HashSet<A> actions = new HashSet<>();
 	HashSet<L> initLocs = new HashSet<>();
 	HashSet<PGTransition<L, A>> transitions = new HashSet<PGTransition<L, A>>();
-	HashSet<HashSet<String>> valuesInits = new HashSet<>();
+	HashSet<List<String>> valuesInits = new HashSet<>();
 	
 	@Override
 	public void addInitalization(List<String> init) {
-		valuesInits.add(new HashSet<String>(init));
+		valuesInits.add(init);
 	}
 
 	@Override
@@ -45,8 +44,8 @@ public class PGImple<L,A> implements ProgramGraph<L, A> {
 	@Override
 	public Set<List<String>> getInitalizations() {
 		HashSet<List<String>> inits = new HashSet<>();
-		for(HashSet<String> oneInit : valuesInits) {
-			inits.add(new LinkedList<>(oneInit));
+		for(List<String> oneInit : valuesInits) {
+			inits.add(oneInit);
 		}
 		return inits;
 	}
