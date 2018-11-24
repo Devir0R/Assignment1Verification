@@ -66,14 +66,6 @@ public class FvmFacadeImpl implements FvmFacade {
 		return true;
 	}
 
-	private <P, S, A> HashSet<P> postStatesLabeling(TransitionSystem<S, A, P> ts, S state) {
-		HashSet<P> postLabelingOfState = new HashSet<>();
-		for(S postState : post(ts,state)) {
-			postLabelingOfState.addAll(ts.getLabel(postState));
-		}
-		return postLabelingOfState;
-	}
-
 	private <S, A, P> boolean isEveryPostCountLessThanOne(TransitionSystem<S, A, P> ts) {
 		HashMap<Pair<S,A>,Integer> stateActionPairs_state = new HashMap<>();
 		for(Transition<S, A> t : ts.getTransitions()) {
@@ -155,25 +147,49 @@ public class FvmFacadeImpl implements FvmFacade {
 		}
 		return post_states_a;
 	}
-
+	
 	@Override
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement pre
+		HashSet<S> pre_s = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(t.getTo().equals(s)) {
+				pre_s.add(t.getFrom());
+			}
+		}
+		return pre_s;
 	}
 
 	@Override
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement pre
+		HashSet<S> pre_states = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(c.contains(t.getTo())) {
+				pre_states.add(t.getFrom());
+			}
+		}
+		return pre_states;
 	}
 
 	@Override
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement pre
+		HashSet<S> pre_s_a = new HashSet<>();
+		for(Transition<S, A> t : ts.getTransitions()) {
+			if(t.getTo().equals(s)&& t.getAction().equals(a)) {
+				pre_s_a.add(t.getFrom());
+			}
+		}
+		return pre_s_a;
 	}
 
 	@Override
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement pre
+		HashSet<S> pre_states_a = new HashSet<>();
+		for(Transition<S, ?> t : ts.getTransitions()) {
+			if(t.getAction().equals(a)&& c.contains(t.getTo())) {
+				pre_states_a.add(t.getFrom());
+			}
+		}
+		return pre_states_a;
 	}
 
 	@Override
