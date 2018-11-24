@@ -5,6 +5,7 @@ import il.ac.bgu.cs.fvm.automata.Automaton;
 import il.ac.bgu.cs.fvm.automata.MultiColorAutomaton;
 import il.ac.bgu.cs.fvm.channelsystem.ChannelSystem;
 import il.ac.bgu.cs.fvm.circuits.Circuit;
+import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.fvm.ltl.LTL;
 import il.ac.bgu.cs.fvm.programgraph.ActionDef;
 import il.ac.bgu.cs.fvm.programgraph.ConditionDef;
@@ -101,7 +102,10 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A> boolean isStateTerminal(TransitionSystem<S, A, ?> ts, S s) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement isStateTerminal
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
+		return post(ts,s).size()==0;
 	}
 
 	@Override

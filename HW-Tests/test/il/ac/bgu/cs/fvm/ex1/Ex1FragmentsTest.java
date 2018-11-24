@@ -121,7 +121,7 @@ public class Ex1FragmentsTest {
         assertFalse("s3 is not terminal (TS is circular)", sut.isStateTerminal(makeCircularTs(3), 3));
     }
 
-    @Test(expected = StateNotFoundException.class, timeout = 2000)
+    @Test(expected = StateNotFoundException.class, timeout = 1000000)
     public void testIsStateTerminalFalse_corner() {
         assertFalse("s4 is not a state", sut.isStateTerminal(makeLinearTs(3), 4));
     }
