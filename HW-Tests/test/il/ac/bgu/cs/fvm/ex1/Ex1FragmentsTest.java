@@ -28,7 +28,7 @@ public class Ex1FragmentsTest {
         sut = FvmFacade.createInstance();
     }
 
-    @Test(timeout = 2000000)
+    @Test(timeout = 2000)
     public void testExecutionFragmentTrue() {
         // corner case: single state.
         assertTrue(sut.isExecutionFragment(makeBranchingTs(5, 2), AlternatingSequence.of("s2")));

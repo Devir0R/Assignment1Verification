@@ -62,7 +62,7 @@ public class FvmFacadeImpl implements FvmFacade {
 				else {
 					labelings.add(stateLabeling);
 				}
-				
+
 			}
 		}
 		return true;
@@ -175,7 +175,7 @@ public class FvmFacadeImpl implements FvmFacade {
 		}
 		return post_states_a;
 	}
-	
+
 	@Override
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s) {
 		HashSet<S> pre_s = new HashSet<>();
@@ -282,12 +282,177 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
+		TransitionSystem<Pair<S1,S2>, A, P> interleaved = createTransitionSystem();
+		addUnionAction(ts1, ts2, interleaved);
+		addUnionAP(ts1, ts2, interleaved);
+		addCartesianProductStates(ts1, ts2, interleaved);
+		addTransitionsByTS1Actions(ts1, ts2, interleaved);
+		addTransitionsByTS2Actions(ts1, ts2, interleaved);
+		return interleaved;
+
+	}
+
+	private <S2, S1, A, P> void addTransitionsByTS2Actions(TransitionSystem<S1, A, P> ts1,
+			TransitionSystem<S2, A, P> ts2, TransitionSystem<Pair<S1, S2>, A, P> interleaved) {
+		for(Transition<S2, A> t : ts2.getTransitions()) {
+			for(S1 state_from_s1 : ts1.getStates()) {
+				interleaved.addTransition(
+						new Transition<Pair<S1,S2>, A>(
+								new Pair<S1, S2>(state_from_s1,t.getFrom()),
+								t.getAction(),
+								new Pair<S1, S2>(state_from_s1,t.getTo())));
+			}
+		}
+	}
+
+	private <S1, S2, A, P> void addTransitionsByTS1Actions(TransitionSystem<S1, A, P> ts1,
+			TransitionSystem<S2, A, P> ts2, TransitionSystem<Pair<S1, S2>, A, P> interleaved) {
+		for(Transition<S1, A> t : ts1.getTransitions()) {
+			for(S2 state_from_s2 : ts2.getStates()) {
+				interleaved.addTransition(
+						new Transition<Pair<S1,S2>, A>(
+								new Pair<S1, S2>(t.getFrom(),state_from_s2),
+								t.getAction(),
+								new Pair<S1, S2>(t.getTo(),state_from_s2)));
+			}
+		}
+	}
+
+	private <S2, S1, A, P> void addCartesianProductStates(TransitionSystem<S1, A, P> ts1,
+			TransitionSystem<S2, A, P> ts2, TransitionSystem<Pair<S1, S2>, A, P> interleaved) {
+		for(S1 stae_from_ts1 : ts1.getStates()) {
+			for(S2 stae_from_ts2 : ts2.getStates()) {
+				Pair<S1, S2> s1Xs2 = new Pair<S1, S2>(stae_from_ts1, stae_from_ts2);
+				interleaved.addState(s1Xs2);
+				if(ts1.getInitialStates().contains(stae_from_ts1) && ts2.getInitialStates().contains(stae_from_ts2)) {
+					interleaved.setInitial(s1Xs2,true);
+				}
+				for(P prop : ts1.getLabel(stae_from_ts1)) {
+					interleaved.addToLabel(s1Xs2, prop);
+				}
+				for(P prop : ts2.getLabel(stae_from_ts2)) {
+					interleaved.addToLabel(s1Xs2, prop);
+				}
+			}	
+		}
+	}
+
+	private <S1, A, P, S2> void addUnionAP(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2,
+			TransitionSystem<Pair<S1, S2>, A, P> interleaved) {
+		interleaved.addAllAtomicPropositions(ts1.getAtomicPropositions());
+		interleaved.addAllAtomicPropositions(ts2.getAtomicPropositions());
+	}
+
+	private <S1, A, P, S2> void addUnionAction(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2,
+			TransitionSystem<Pair<S1, S2>, A, P> interleaved) {
+		interleaved.addAllActions(ts1.getActions());
+		interleaved.addAllActions(ts2.getActions());
 	}
 
 	@Override
 	public <S1, S2, A, P> TransitionSystem<Pair<S1, S2>, A, P> interleave(TransitionSystem<S1, A, P> ts1, TransitionSystem<S2, A, P> ts2, Set<A> handShakingActions) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement interleave
+		TransitionSystem<Pair<S1,S2>, A, P> interleaved = createTransitionSystem();
+		addUnionAction(ts1, ts2, interleaved);
+		addUnionAP(ts1, ts2, interleaved);
+		addCartesianProductStates(ts1, ts2, interleaved);
+		if(handShakingActions.size()==0) {
+			addTransitionsByTS1Actions(ts1, ts2, interleaved);
+			addTransitionsByTS2Actions(ts1, ts2, interleaved);
+		}
+		else {
+			HashMap<A,Set<Transition<S1, A>>> a_to_transitionsWithA_in_ts1 = new HashMap<>();
+			HashMap<A,Set<Transition<S2, A>>> a_to_transitionsWithA_in_ts2 = new HashMap<>();
+			for(A actionInHandshake : handShakingActions) {
+				a_to_transitionsWithA_in_ts1.put(actionInHandshake, new HashSet<>());
+				a_to_transitionsWithA_in_ts2.put(actionInHandshake, new HashSet<>());
+			}
+			for(Transition<S2, A> t : ts2.getTransitions()) {
+				addTransitionExcludingHandshakeActionsTS1(ts1, handShakingActions, interleaved,
+						a_to_transitionsWithA_in_ts2, t);
+			}
+			for(Transition<S1, A> t : ts1.getTransitions()) {
+				addTransitionExcludingHandshakeActionsTS2(ts2, handShakingActions, interleaved,
+						a_to_transitionsWithA_in_ts1, t);
+			}
+			handshake(handShakingActions, interleaved, a_to_transitionsWithA_in_ts1, a_to_transitionsWithA_in_ts2);
+		}
+		
+
+		return removeUnreachableStates(interleaved);
+	}
+
+	private <S, A, P> TransitionSystem<S, A, P> removeUnreachableStates(
+			TransitionSystem<S, A, P> ts) {
+		TransitionSystem<S, A, P> ans = createTransitionSystem();
+		ans.addAllStates(reach(ts));
+		ans.addAllActions(ts.getActions());
+		ans.addAllAtomicPropositions(ts.getAtomicPropositions());
+		for(S s : ts.getInitialStates()) {
+			ans.setInitial(s, true);
+		}
+		
+		for(S s : ans.getStates()) {
+			for(P ap : ts.getLabel(s)) {
+				ans.addToLabel(s, ap);
+			}
+		}
+		for(Transition<S, A> t : ts.getTransitions()) {
+			if(ans.getStates().contains(t.getFrom())&&ans.getStates().contains(t.getTo())) {
+				ans.addTransition(t);
+			}
+		}
+		
+		return ans;
+	}
+
+	private <S1, S2, A, P> void handshake(Set<A> handShakingActions, TransitionSystem<Pair<S1, S2>, A, P> interleaved,
+			HashMap<A, Set<Transition<S1, A>>> a_to_transitionsWithA_in_ts1,
+			HashMap<A, Set<Transition<S2, A>>> a_to_transitionsWithA_in_ts2) {
+		for(A actionInHandshake : handShakingActions) {
+			for(Transition<S1, A> transition_from_s1 : a_to_transitionsWithA_in_ts1.get(actionInHandshake)) {
+				for(Transition<S2, A> transition_from_s2 : a_to_transitionsWithA_in_ts2.get(actionInHandshake)) {
+					interleaved.addTransition(
+							new Transition<Pair<S1,S2>, A>(
+									new Pair<S1, S2>(transition_from_s1.getFrom(), transition_from_s2.getFrom()),
+									actionInHandshake,
+									new Pair<S1, S2>(transition_from_s1.getTo(), transition_from_s2.getTo())));
+				}	
+			}
+		}
+	}
+
+	private <S2, S1, A, P> void addTransitionExcludingHandshakeActionsTS2(TransitionSystem<S2, A, P> ts2,
+			Set<A> handShakingActions, TransitionSystem<Pair<S1, S2>, A, P> interleaved,
+			HashMap<A, Set<Transition<S1, A>>> a_to_transitionsWithA_in_ts1, Transition<S1, A> t) {
+		if(handShakingActions.contains(t.getAction())) {
+			a_to_transitionsWithA_in_ts1.get(t.getAction()).add(t);
+		}
+		else {
+			for(S2 state_from_s2 : ts2.getStates()) {
+				interleaved.addTransition(
+						new Transition<Pair<S1,S2>, A>(
+								new Pair<S1, S2>(t.getFrom(),state_from_s2),
+								t.getAction(),
+								new Pair<S1, S2>(t.getTo(),state_from_s2)));
+			}
+		}
+	}
+
+	private <S1, A, S2, P> void addTransitionExcludingHandshakeActionsTS1(TransitionSystem<S1, A, P> ts1,
+			Set<A> handShakingActions, TransitionSystem<Pair<S1, S2>, A, P> interleaved,
+			HashMap<A, Set<Transition<S2, A>>> a_to_transitionsWithA_in_ts2, Transition<S2, A> t) {
+		if(handShakingActions.contains(t.getAction())) {
+			a_to_transitionsWithA_in_ts2.get(t.getAction()).add(t);
+		}
+		else {
+			for(S1 state_from_s1 : ts1.getStates()) {
+				interleaved.addTransition(
+						new Transition<Pair<S1,S2>, A>(
+								new Pair<S1, S2>(state_from_s1,t.getFrom()),
+								t.getAction(),
+								new Pair<S1, S2>(state_from_s1,t.getTo())));
+			}
+		}
 	}
 
 	@Override
@@ -333,20 +498,20 @@ public class FvmFacadeImpl implements FvmFacade {
 
 
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
