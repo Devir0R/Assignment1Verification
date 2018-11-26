@@ -713,8 +713,14 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	private <L, A> void addLabeling(ProgramGraph<L, A> pg,
 			TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts_from_pg) {
+		Set<L> reachableLocations = new HashSet<>();
+		for(Pair<L,Map<String, Object>> map : ts_from_pg.getStates()) {
+			reachableLocations.add(map.getFirst());
+		}
 		for(L loc : pg.getLocations()) {
-			ts_from_pg.addAtomicProposition(loc+"");
+			if(reachableLocations.contains(loc)) {
+				ts_from_pg.addAtomicProposition(loc+"");
+			}
 		}
 		for(Pair<L, Map<String, Object>> state : ts_from_pg.getStates()) {
 			ts_from_pg.addToLabel(state, state.getFirst()+"");

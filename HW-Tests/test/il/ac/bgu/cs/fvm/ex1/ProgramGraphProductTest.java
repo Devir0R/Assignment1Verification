@@ -203,11 +203,11 @@ public class ProgramGraphProductTest {
 
 		assertEquals(set("", "y:=y-1", "y:=y+1"), ts.getActions());
 
+		Set atomicPropositions = ts.getAtomicPropositions();
 		assertEquals(
 				set("<noncrit1,crit2>", "<wait1,crit2>", "<crit1,wait2>", "<noncrit1,wait2>", "<wait1,wait2>",
 						"<crit1,noncrit2>", "y = 0", "<wait1,noncrit2>", "y = 1", "<noncrit1,noncrit2>"),
-				ts.getAtomicPropositions());
-
+				atomicPropositions);
 		assertEquals(set(
 				transition(p(p("wait1", "noncrit2"), map(p("y", 1))), "", p(p("wait1", "wait2"), map(p("y", 1)))),
 				transition(p(p("noncrit1", "noncrit2"), map(p("y", 1))), "", p(p("noncrit1", "wait2"), map(p("y", 1)))),

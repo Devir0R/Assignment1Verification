@@ -105,10 +105,9 @@ public class ProgramGraphTest {
 
 		assertEquals(set("refill", "sget", "ret_coin", "bget", "coin"), ts.getActions());
 
-		Set atomicPropositions = ts.getAtomicPropositions();
 		assertEquals(
 				set("nbeer = 2", "nbeer = 1", "nbeer = 0", "nsoda = 1", "nsoda = 0", "nsoda = 2", "start", "select"),
-				atomicPropositions);
+				ts.getAtomicPropositions());
 
 		assertEquals(set(transition(p("select", map(p("nbeer", 1), p("nsoda", 1))), "bget",
 						p("start", map(p("nbeer", 0), p("nsoda", 1)))),
