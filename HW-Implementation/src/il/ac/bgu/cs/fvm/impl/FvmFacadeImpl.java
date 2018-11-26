@@ -17,12 +17,16 @@ import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 import il.ac.bgu.cs.fvm.util.Pair;
 import il.ac.bgu.cs.fvm.verification.VerificationResult;
+
+import static java.lang.Boolean.*;
+
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -536,7 +540,161 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> transitionSystemFromCircuit(Circuit c) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement transitionSystemFromCircuit
+		TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c = createTransitionSystem();
+		ts_from_c.setName("TSCircuit-[" + c + "]");
+		createStatesFromCircuit(ts_from_c, c);//adds also initStates
+		addAP(c, ts_from_c);
+		createAPForStates(ts_from_c);//missing outputs labeling
+		createAPOutputs(c,ts_from_c);
+		ts_from_c.addAllActions(createActions(c.getInputPortNames()));
+		addTransitions(c,ts_from_c);
+		return removeUnreachableStates(ts_from_c);
+	}
+
+	private void createAPOutputs(Circuit c,
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c) {
+		for(Pair<Map<String,Boolean>,Map<String,Boolean>> state : ts_from_c.getStates()) {
+			Map<String,Boolean> outputMapping = c.computeOutputs(state.getFirst(), state.getSecond());//configure the circuit for the state
+			for(Entry<String,Boolean> entry : outputMapping.entrySet()) {
+				if(entry.getValue()) {
+					ts_from_c.addToLabel(state, entry.getKey());
+				}
+			}
+		}
+	}
+
+	private void addTransitions(Circuit c,
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c) {
+		for(Pair<Map<String,Boolean>,Map<String,Boolean>> state : ts_from_c.getStates()) {
+			for(Map<String,Boolean> action : ts_from_c.getActions()) {
+				ts_from_c.addTransition(
+						new Transition<Pair<Map<String,Boolean>,Map<String,Boolean>>, Map<String,Boolean>>(
+								state,
+								action,
+								new Pair<Map<String,Boolean>, Map<String,Boolean>>(action,c.updateRegisters(state.getFirst(), state.getSecond()))));
+			}
+		}		
+	}
+
+	private void addAP(Circuit c,
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c) {
+		c.getInputPortNames().forEach((str)->ts_from_c.addAtomicProposition(str));
+		c.getOutputPortNames().forEach((str)->ts_from_c.addAtomicProposition(str));
+		c.getRegisterNames().forEach((str)->ts_from_c.addAtomicProposition(str));
+	}
+	private Set<Map<String, Boolean>> createActions(Set<String> inps) {
+		HashSet<Map<String, Boolean>> actions = new HashSet<>();//actions to return
+		actions.add(new HashMap<String, Boolean>());//empty mapping for start
+		for(String inp : inps) {//for each input add input->true and input->false to the mapping
+			actions.forEach((map)->map.put(inp, FALSE));//adds inp->true to each mapping
+			HashSet<Map<String, Boolean>> copy = deepCopy(actions);//copy the mapping
+			copy.forEach((map)->map.replace(inp, TRUE));//inp->true becomes inp->false
+			actions.addAll(copy);//both mapping are possible, so the mappings are added to actions
+		}
+		return actions;
+		
+	}
+
+	private HashSet<Map<String, Boolean>> deepCopy(HashSet<Map<String, Boolean>> actions) {
+		HashSet<Map<String, Boolean>> set = new HashSet<>();
+		for(Map<String,Boolean> map : actions) {
+			set.add(new HashMap<>(map));
+		}
+		return set;
+	}
+
+	private void createAPForStates(
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c) {
+		for (Pair<Map<String, Boolean>, Map<String, Boolean>> state : ts_from_c.getStates()) {
+			addLabel(ts_from_c,state);
+		}
+		
+	}
+
+	private void addLabel(
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c,
+			Pair<Map<String, Boolean>, Map<String, Boolean>> state) {
+		for(Entry<String,Boolean> entry : state.getFirst().entrySet()) {
+			if(entry.getValue()) {
+				ts_from_c.addToLabel(state, entry.getKey());
+			}
+		}
+		for(Entry<String,Boolean> entry : state.getSecond().entrySet()) {
+			if(entry.getValue()) {
+				ts_from_c.addToLabel(state, entry.getKey());
+			}
+		}
+		
+	}
+
+	private void createStatesFromCircuit(
+			TransitionSystem<Pair<Map<String, Boolean>, Map<String, Boolean>>, Map<String, Boolean>, Object> ts_from_c,Circuit c) {
+		Set<String> regs = c.getRegisterNames();
+		Set<String> inputs = c.getInputPortNames();
+		LinkedList<Pair<Map<String, Boolean>, Map<String, Boolean>>> accStates = new LinkedList<Pair<Map<String,Boolean>,Map<String,Boolean>>>();
+		accStates.add(new Pair<Map<String,Boolean>, Map<String,Boolean>>(new HashMap<>(), new HashMap<>()));
+		Set<Pair<Map<String,Boolean>,Map<String,Boolean>>> finishedStates = createStatesFromCircuit(
+				accStates,
+				new LinkedList<String>(regs),
+				new LinkedList<String>(inputs));
+		for (Pair<Map<String, Boolean>, Map<String, Boolean>> pair : finishedStates) {
+			ts_from_c.addState(pair);
+			if(isInitState(pair)) {
+				ts_from_c.setInitial(pair, true);
+			}
+		}
+	}
+
+	private boolean isInitState(Pair<Map<String, Boolean>, Map<String, Boolean>> pair) {
+		for(Entry<String,Boolean> regs_values : pair.getSecond().entrySet()) {
+			if(regs_values.getValue()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private Set<Pair<Map<String,Boolean>,Map<String,Boolean>>> createStatesFromCircuit(LinkedList<Pair<Map<String,Boolean>,Map<String,Boolean>>> accStates,
+			LinkedList<String> regs, LinkedList<String> inputs) {
+		LinkedList<Pair<Map<String,Boolean>,Map<String,Boolean>>> accStatesNew = new LinkedList<>();
+		if(!regs.isEmpty() || !inputs.isEmpty()) {
+			while(!accStates.isEmpty()) {
+				Pair<Map<String,Boolean>,Map<String,Boolean>> oldState =  accStates.poll();
+				Pair<Map<String,Boolean>,Map<String,Boolean>> trueState = duplicatePair(oldState);
+				Pair<Map<String,Boolean>,Map<String,Boolean>> falseState =  duplicatePair(oldState);
+				if(!regs.isEmpty()) {
+					String reg = regs.peek();
+					trueState.getSecond().put(reg, Boolean.TRUE);
+					falseState.getSecond().put(reg, Boolean.FALSE);
+				}
+				else if (!inputs.isEmpty()) {
+					String inp = inputs.peek();
+					trueState.getFirst().put(inp, Boolean.TRUE);
+					falseState.getFirst().put(inp, Boolean.FALSE);
+				}
+				accStatesNew.add(trueState);
+				accStatesNew.add(falseState);
+			}
+			if(!regs.isEmpty()) {
+				regs.poll();
+			}
+			else if (!inputs.isEmpty()) {
+				inputs.poll();
+			}
+			return createStatesFromCircuit(accStatesNew, regs, inputs);
+
+
+		}
+
+		return new HashSet<Pair<Map<String,Boolean>,Map<String,Boolean>>>(accStates);
+
+	}
+
+	private Pair<Map<String, Boolean>, Map<String, Boolean>> duplicatePair(
+			Pair<Map<String, Boolean>, Map<String, Boolean>> oldState) {
+		return new Pair<Map<String,Boolean>,Map<String,Boolean>>(
+				new HashMap<String,Boolean>(oldState.first),
+				new HashMap<String,Boolean>(oldState.second));
 	}
 
 	@Override
@@ -547,11 +705,6 @@ public class FvmFacadeImpl implements FvmFacade {
 	@Override
 	public <L, A> TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> transitionSystemFromChannelSystem(ChannelSystem<L, A> cs) {
 		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement transitionSystemFromChannelSystem
-	}
-
-	@Override
-	public <Sts, Saut, A, P> TransitionSystem<Pair<Sts, Saut>, A, Saut> product(TransitionSystem<Sts, A, P> ts, Automaton<Saut, P> aut) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement product
 	}
 
 	@Override
@@ -594,6 +747,10 @@ public class FvmFacadeImpl implements FvmFacade {
 
 
 
+	@Override
+	public <Sts, Saut, A, P> TransitionSystem<Pair<Sts, Saut>, A, Saut> product(TransitionSystem<Sts, A, P> ts, Automaton<Saut, P> aut) {
+		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement product
+	}
 
 	@Override
 	public <S, A, P, Saut> VerificationResult<S> verifyAnOmegaRegularProperty(TransitionSystem<S, A, P> ts, Automaton<Saut, P> aut) {
