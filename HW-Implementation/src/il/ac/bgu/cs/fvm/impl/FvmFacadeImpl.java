@@ -699,7 +699,79 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <L, A> TransitionSystem<Pair<L, Map<String, Object>>, A, String> transitionSystemFromProgramGraph(ProgramGraph<L, A> pg, Set<ActionDef> actionDefs, Set<ConditionDef> conditionDefs) {
-		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement transitionSystemFromProgramGraph
+		TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts_from_pg = createTransitionSystem();
+		Set<List<String>> i13ns = pg.getInitalizations();
+		Set<L> initLocs = pg.getInitialLocations();
+		LinkedList<Pair<L, Map<String, Object>>> open = new LinkedList<>();
+		LinkedList<Pair<L, Map<String, Object>>> done = new LinkedList<>();		
+		createInitLocation(actionDefs, ts_from_pg, i13ns, initLocs, open);
+		addStatesActionsTransitions(pg, actionDefs, conditionDefs, ts_from_pg, open, done);
+		removeUnreachableStates(ts_from_pg);
+		addLabeling(pg, ts_from_pg);
+		return ts_from_pg;
+	}
+
+	private <L, A> void addLabeling(ProgramGraph<L, A> pg,
+			TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts_from_pg) {
+		for(L loc : pg.getLocations()) {
+			ts_from_pg.addAtomicProposition(loc+"");
+		}
+		for(Pair<L, Map<String, Object>> state : ts_from_pg.getStates()) {
+			ts_from_pg.addToLabel(state, state.getFirst()+"");
+			for(Entry<String,Object> entry : state.getSecond().entrySet()) {
+				String ap = entry.getKey() + " = " + entry.getValue();
+				ts_from_pg.addAtomicProposition(ap);
+				ts_from_pg.addToLabel(state, ap);
+			}
+		}
+
+		
+	}
+
+
+
+
+	private <A, L> void addStatesActionsTransitions(ProgramGraph<L, A> pg, Set<ActionDef> actionDefs,
+			Set<ConditionDef> conditionDefs, TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts_from_pg,
+			LinkedList<Pair<L, Map<String, Object>>> open, LinkedList<Pair<L, Map<String, Object>>> done) {
+		while(!open.isEmpty()) {
+			Pair<L, Map<String, Object>> loc = open.poll();
+			for(PGTransition<L, A> transition : pg.getTransitions()) {
+				ts_from_pg.addAction(transition.getAction());
+				if(transition.getFrom().equals(loc.getFirst()) && ConditionDef.evaluate(conditionDefs, loc.getSecond(), transition.getCondition())) {
+					Pair<L, Map<String, Object>> aTo = new Pair<L, Map<String, Object>>(transition.getTo(),ActionDef.effect(actionDefs, loc.getSecond(), transition.getAction()));
+					ts_from_pg.addState(aTo);
+					if(!done.contains(aTo)) {
+						open.add(aTo);
+					}
+					ts_from_pg.addTransition(
+							new Transition<Pair<L,Map<String,Object>>, A>(
+									loc,
+									transition.getAction(),
+									aTo
+									));
+				}
+			}
+			done.add(loc);
+		}
+	}
+
+	private <L, A> void createInitLocation(Set<ActionDef> actionDefs,
+			TransitionSystem<Pair<L, Map<String, Object>>, A, String> ts_from_pg, Set<List<String>> i13ns,
+			Set<L> initLocs, LinkedList<Pair<L, Map<String, Object>>> open) {
+		for (List<String> oneInit : i13ns) {
+			Map<String,Object> evals = new HashMap<>();
+			for(String ass : oneInit) {
+				evals = ActionDef.effect(actionDefs, evals, ass);
+			}
+			for(L initLoc : initLocs) {
+				Pair<L, Map<String, Object>> state = new Pair<L, Map<String,Object>>(initLoc,evals);
+				open.add(state);
+				ts_from_pg.addState(
+						state);
+				ts_from_pg.setInitial(state, true);
+			}
+		}
 	}
 
 	@Override
