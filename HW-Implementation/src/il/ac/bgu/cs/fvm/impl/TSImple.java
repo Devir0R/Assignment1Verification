@@ -9,10 +9,10 @@ import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedActionException;
 import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedAtomicPropositionException;
 import il.ac.bgu.cs.fvm.exceptions.DeletionOfAttachedStateException;
 import il.ac.bgu.cs.fvm.exceptions.FVMException;
+import il.ac.bgu.cs.fvm.exceptions.InvalidLablingPairException;
 import il.ac.bgu.cs.fvm.exceptions.InvalidTransitionException;
 import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
 import il.ac.bgu.cs.fvm.exceptions.TransitionSystemPart;
-import il.ac.bgu.cs.fvm.impl.exc.AtomicPropositionNotFoundException;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
 import il.ac.bgu.cs.fvm.transitionsystem.TransitionSystem;
 
@@ -152,7 +152,7 @@ public class TSImple<STATE, ACTION, ATOMIC_PROPOSITION> implements TransitionSys
 	@Override
 	public void addToLabel(STATE s, ATOMIC_PROPOSITION l) throws FVMException {
 		if(!ap.contains(l)) {
-			throw new AtomicPropositionNotFoundException("the action " + s + "could not be labeled by " + l +" because it is not an atomic proposition in the transition system");
+			throw new InvalidLablingPairException(s,l);
 		}
 		if(labelingFunction.get(s)==null) {
 			labelingFunction.put(s, new HashSet<>());

@@ -11,6 +11,7 @@ import il.ac.bgu.cs.fvm.ltl.LTL;
 import il.ac.bgu.cs.fvm.programgraph.ActionDef;
 import il.ac.bgu.cs.fvm.programgraph.ConditionDef;
 import il.ac.bgu.cs.fvm.programgraph.PGTransition;
+import il.ac.bgu.cs.fvm.programgraph.ParserBasedActDef;
 import il.ac.bgu.cs.fvm.programgraph.ProgramGraph;
 import il.ac.bgu.cs.fvm.transitionsystem.AlternatingSequence;
 import il.ac.bgu.cs.fvm.transitionsystem.Transition;
@@ -134,11 +135,17 @@ public class FvmFacadeImpl implements FvmFacade {
 		if(!ts.getStates().contains(s)) {
 			throw new StateNotFoundException(s);
 		}
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
 		return post(ts,s).size()==0;
 	}
 
 	@Override
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, S s) {
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
 		HashSet<S> post_s = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(t.getFrom().equals(s)) {
@@ -150,6 +157,11 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S> Set<S> post(TransitionSystem<S, ?, ?> ts, Set<S> c) {
+		c.forEach(s->{
+			if(!ts.getStates().contains(s)) {
+				throw new StateNotFoundException(s);
+			}
+		});
 		HashSet<S> post_states = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(c.contains(t.getFrom())) {
@@ -161,6 +173,9 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, S s, A a) {
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
 		HashSet<S> post_s_a = new HashSet<>();
 		for(Transition<S, A> t : ts.getTransitions()) {
 			if(t.getFrom().equals(s)&& t.getAction().equals(a)) {
@@ -172,6 +187,11 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A> Set<S> post(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
+		c.forEach(s->{
+			if(!ts.getStates().contains(s)) {
+				throw new StateNotFoundException(s);
+			}
+		});
 		HashSet<S> post_states_a = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(t.getAction().equals(a)&& c.contains(t.getFrom())) {
@@ -183,6 +203,9 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, S s) {
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
 		HashSet<S> pre_s = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(t.getTo().equals(s)) {
@@ -194,6 +217,11 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S> Set<S> pre(TransitionSystem<S, ?, ?> ts, Set<S> c) {
+		c.forEach(s->{
+			if(!ts.getStates().contains(s)) {
+				throw new StateNotFoundException(s);
+			}
+		});
 		HashSet<S> pre_states = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(c.contains(t.getTo())) {
@@ -205,6 +233,9 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, S s, A a) {
+		if(!ts.getStates().contains(s)) {
+			throw new StateNotFoundException(s);
+		}
 		HashSet<S> pre_s_a = new HashSet<>();
 		for(Transition<S, A> t : ts.getTransitions()) {
 			if(t.getTo().equals(s)&& t.getAction().equals(a)) {
@@ -216,6 +247,11 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <S, A> Set<S> pre(TransitionSystem<S, A, ?> ts, Set<S> c, A a) {
+		c.forEach(s->{
+			if(!ts.getStates().contains(s)) {
+				throw new StateNotFoundException(s);
+			}
+		});
 		HashSet<S> pre_states_a = new HashSet<>();
 		for(Transition<S, ?> t : ts.getTransitions()) {
 			if(t.getAction().equals(a)&& c.contains(t.getTo())) {
@@ -782,7 +818,114 @@ public class FvmFacadeImpl implements FvmFacade {
 
 	@Override
 	public <L, A> TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> transitionSystemFromChannelSystem(ChannelSystem<L, A> cs) {
+		TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts_from_cs = createTransitionSystem();
+		List<List<L>> listOfLocations = createLocationInStates(cs);
+		List<List<L>> initLocations  = findInitLocations(cs,listOfLocations);
+		List<Map<String,Object>> inits = createInitializations(cs);
+		Set<Pair<List<String>,Map<String,Object>>> initStates = createInitStates(initLocations,inits);
+		addActions(cs, ts_from_cs);
 		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement transitionSystemFromChannelSystem
+	}
+
+	private <L, A> void addActions(ChannelSystem<L, A> cs,
+			TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts_from_cs) {
+		for(ProgramGraph<L,A> pg : cs.getProgramGraphs()) {
+			for(PGTransition<L, A> pgt : pg.getTransitions()) {
+				ts_from_cs.addAction(pgt.getAction());
+			}
+		}
+	}
+
+
+	private <L,A> Set<Pair<List<String>, Map<String, Object>>> createInitStates(List<List<L>> initLocations,
+			List<Map<String, Object>> inits) {
+		List<List<String>> initLocationsString = new LinkedList<>();
+		initLocations.forEach((list)->{
+			List<String> l_str = new LinkedList<>();
+			list.forEach((loc)->{
+				l_str.add(loc+"");
+			});
+			initLocationsString.add(l_str);
+		});
+		Set<Pair<List<String>, Map<String, Object>>> initStates = new HashSet<>();
+		for(List<String> initLocsList : initLocationsString) {
+			for(Map<String,Object> initMap : inits) {
+				initStates.add(
+						new Pair<List<String>, Map<String,Object>>(
+								initLocsList,
+								initMap));
+			}
+		}
+		
+		return null;
+	}
+
+	private <L,A> List<Map<String, Object>> createInitializations(ChannelSystem<L, A> cs) {
+		List<Map<String,Object>> listOfInits = new LinkedList<>();
+		listOfInits.add(new HashMap<>());
+		List<ProgramGraph<L, A>> graphs = cs.getProgramGraphs();
+		for(ProgramGraph<L, A> pg :graphs) {
+			List<Map<String,Object>> initMaps = createMapFromListOfInitializations(pg.getInitalizations());
+			List<Map<String,Object>> accumalator = new LinkedList<>();
+			initMaps.forEach(m->{
+				List<Map<String,Object>> copy = new LinkedList<>(listOfInits);
+				copy.forEach(map->map.putAll(m));
+				accumalator.addAll(copy);
+			});
+			listOfInits.clear();
+			listOfInits.addAll(accumalator);
+		}
+		return listOfInits;
+	}
+
+	private List<Map<String, Object>> createMapFromListOfInitializations(Set<List<String>> initalizations) {
+		List<Map<String,Object>> initMaps = new LinkedList<>();
+		ActionDef parser = new ParserBasedActDef();
+		Set<ActionDef> ads = new HashSet<>();
+		ads.add(parser);
+		for(List<String> oneInit : initalizations) {
+			Map<String,Object> oneInitMap = new HashMap<>();
+			for(String ass : oneInit) {
+				oneInitMap = ActionDef.effect(ads, oneInitMap, ass);
+			}
+			initMaps.add(oneInitMap);
+		}
+		return initMaps;
+	}
+
+	private <L,A> List<List<L>> findInitLocations(ChannelSystem<L, A> cs, List<List<L>> listOfLocations) {
+		List<List<L>> initLocs = new LinkedList<>();
+		boolean isInit;
+		for(List<L> preState : listOfLocations) {
+			 isInit = true;
+			for(int i =0;i< preState.size();i++) {
+				if(!cs.getProgramGraphs().get(i).getInitialLocations().contains(preState.get(i))) {
+					isInit = false;
+					break;
+				}
+			}
+			if(isInit) {
+				initLocs.add(preState);
+			}
+		}
+		return initLocs;
+	}
+
+	private <L, A> List<List<L>> createLocationInStates(ChannelSystem<L, A> cs) {
+		List<List<L>> listOfLocation = new LinkedList<>();
+		listOfLocation.add(new LinkedList<>());
+		List<ProgramGraph<L, A>> graphs = cs.getProgramGraphs();
+		for(ProgramGraph<L, A> pg :graphs) {
+			List<List<L>> accumalator = new LinkedList<>();
+			pg.getLocations().forEach(l->{
+				List<List<L>> copy = new LinkedList<>(listOfLocation);
+				copy.forEach(list->list.add(l));
+				accumalator.addAll(copy);
+			});
+			listOfLocation.clear();
+			listOfLocation.addAll(accumalator);
+		}
+		return listOfLocation;
 	}
 
 	@Override
