@@ -4,6 +4,7 @@ import il.ac.bgu.cs.fvm.FvmFacade;
 import il.ac.bgu.cs.fvm.automata.Automaton;
 import il.ac.bgu.cs.fvm.automata.MultiColorAutomaton;
 import il.ac.bgu.cs.fvm.channelsystem.ChannelSystem;
+import il.ac.bgu.cs.fvm.channelsystem.ParserBasedInterleavingActDef;
 import il.ac.bgu.cs.fvm.circuits.Circuit;
 import il.ac.bgu.cs.fvm.exceptions.ActionNotFoundException;
 import il.ac.bgu.cs.fvm.exceptions.StateNotFoundException;
@@ -824,7 +825,28 @@ public class FvmFacadeImpl implements FvmFacade {
 		List<Map<String,Object>> inits = createInitializations(cs);
 		Set<Pair<List<String>,Map<String,Object>>> initStates = createInitStates(initLocations,inits);
 		addActions(cs, ts_from_cs);
+		addStatesActionsTransitions(cs,ts_from_cs);
 		throw new UnsupportedOperationException("Not supported yet."); // TODO: Implement transitionSystemFromChannelSystem
+	}
+
+	private <L,A> void addStatesActionsTransitions(ChannelSystem<L, A> cs,
+			TransitionSystem<Pair<List<L>, Map<String, Object>>, A, String> ts_from_cs) {
+		LinkedList<Pair<List<L>, Map<String, Object>>> open = new LinkedList<>(ts_from_cs.getInitialStates());
+		LinkedList<Pair<List<L>, Map<String, Object>>> closed = new LinkedList<>();
+		while(!open.isEmpty()) {
+			Pair<List<L>, Map<String, Object>> state = open.poll();
+			for(int i =0;i<state.getFirst().size();i++) {
+				L l_i = state.getFirst().get(i);
+				ProgramGraph<L, A> pg_i = cs.getProgramGraphs().get(i);
+				for(PGTransition<L, A> trans : pg_i.getTransitions()) {
+					if(trans.getFrom().equals(l_i)) {
+						//TODO a way to interpret the condition in the transition to see
+						//if fit the conditions, hence should be added to the transition system
+					}
+				}
+			}
+		}
+		
 	}
 
 	private <L, A> void addActions(ChannelSystem<L, A> cs,
